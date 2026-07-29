@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Escala da Família · Acompanhamento Hospitalar</title>
+<meta name="description" content="Organize a escala de acompanhantes de um paciente internado e veja quem está no hospital a cada momento.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="style.css">
+
+<!-- Bibliotecas para exportação (carregadas via CDN, sem necessidade de backend) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+</head>
+<body>
+
+<!-- Sprite de ícones SVG simples e reutilizáveis -->
+<svg class="icon-sprite" aria-hidden="true" style="display:none">
+  <symbol id="icon-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 7v5l3.2 2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+  <symbol id="icon-user" viewBox="0 0 24 24"><circle cx="12" cy="8.2" r="3.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5 20c1.2-4 4-5.6 7-5.6s5.8 1.6 7 5.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+  <symbol id="icon-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="icon-calendar" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 9.5h17M8 3v3.6M16 3v3.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+  <symbol id="icon-alert" viewBox="0 0 24 24"><path d="M12 4 21.5 20h-19L12 4Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 10v4.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="17.4" r="0.9" fill="currentColor"/></symbol>
+  <symbol id="icon-chevron-left" viewBox="0 0 24 24"><path d="M15 5 8 12l7 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="icon-chevron-right" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="icon-edit" viewBox="0 0 24 24"><path d="M4 20h16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M14.5 4.5 19 9 8.6 19.3 4 20l.7-4.6L14.5 4.5Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
+  <symbol id="icon-trash" viewBox="0 0 24 24"><path d="M5 7h14M9 7V5a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 5v2m-8 0 .8 12.2A2 2 0 0 0 9.8 21h4.4a2 2 0 0 0 2-1.8L17 7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="m20 20-4.3-4.3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+  <symbol id="icon-download" viewBox="0 0 24 24"><path d="M12 4v11.5m0 0 4-4m-4 4-4-4M5 19.5h14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="icon-printer" viewBox="0 0 24 24"><path d="M7 8.5V4h10v4.5M7 17.5H5.2A1.7 1.7 0 0 1 3.5 15.8v-4.6A1.7 1.7 0 0 1 5.2 9.5h13.6a1.7 1.7 0 0 1 1.7 1.7v4.6a1.7 1.7 0 0 1-1.7 1.7H17M7 14h10v6.5H7Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
+  <symbol id="icon-moon" viewBox="0 0 24 24"><path d="M18.5 13.4a7.6 7.6 0 0 1-9.9-9.9 8.2 8.2 0 1 0 9.9 9.9Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
+  <symbol id="icon-bed" viewBox="0 0 24 24"><path d="M3 18.5v-9M3 15.5h18v3M21 15.5v-2.8a2 2 0 0 0-2-2H9.5v-2.2a1.3 1.3 0 0 0-1.3-1.3H5A2 2 0 0 0 3 9.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="7.3" cy="9" r="1.3" fill="none" stroke="currentColor" stroke-width="1.4"/></symbol>
+  <symbol id="icon-relay" viewBox="0 0 24 24"><path d="M4 18 10 8M20 6l-6 10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="4" cy="18" r="1.6" fill="currentColor"/><circle cx="20" cy="6" r="1.6" fill="currentColor"/></symbol>
+</svg>
+
+<div class="app">
+
+  <!-- ===================== CABEÇALHO ===================== -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <span class="brand-mark"><svg class="icon" width="22" height="22"><use href="#icon-bed"/></svg></span>
+      <div class="brand-text">
+        <h1>Escala da Família</h1>
+        <p>Acompanhamento hospitalar · quem está, quando e por quanto tempo</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-ghost" id="btnPrint" title="Imprimir agenda">
+        <svg class="icon" width="18" height="18"><use href="#icon-printer"/></svg><span>Imprimir</span>
+      </button>
+      <button class="btn btn-ghost" id="btnExportPdf" title="Exportar em PDF">
+        <svg class="icon" width="18" height="18"><use href="#icon-download"/></svg><span>PDF</span>
+      </button>
+      <button class="btn btn-ghost" id="btnExportXlsx" title="Exportar em Excel">
+        <svg class="icon" width="18" height="18"><use href="#icon-download"/></svg><span>Excel</span>
+      </button>
+      <button class="btn btn-primary" id="btnNovoPlantao">
+        <svg class="icon" width="18" height="18"><use href="#icon-plus"/></svg><span>Novo plantão</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="layout">
+
+    <!-- ===================== RESUMO ===================== -->
+    <section class="panel summary-panel" aria-label="Resumo da escala">
+      <div class="summary-grid">
+        <div class="summary-card summary-card--now" id="cardAgora">
+          <div class="summary-card-icon"><svg class="icon" width="20" height="20"><use href="#icon-user"/></svg></div>
+          <div class="summary-card-body">
+            <span class="summary-card-label">Agora no hospital</span>
+            <strong class="summary-card-value" id="valAgora">—</strong>
+            <span class="summary-card-sub" id="subAgora"></span>
+          </div>
+        </div>
+        <div class="summary-card" id="cardProximo">
+          <div class="summary-card-icon"><svg class="icon" width="20" height="20"><use href="#icon-clock"/></svg></div>
+          <div class="summary-card-body">
+            <span class="summary-card-label">Próximo acompanhante</span>
+            <strong class="summary-card-value" id="valProximo">—</strong>
+            <span class="summary-card-sub" id="subProximo"></span>
+          </div>
+        </div>
+        <div class="summary-card summary-card--gap" id="cardLacunas">
+          <div class="summary-card-icon"><svg class="icon" width="20" height="20"><use href="#icon-alert"/></svg></div>
+          <div class="summary-card-body">
+            <span class="summary-card-label">Horários sem ninguém</span>
+            <strong class="summary-card-value" id="valLacunas">—</strong>
+            <span class="summary-card-sub">nesta semana</span>
+          </div>
+        </div>
+        <div class="summary-card summary-card--hours" id="cardHoras">
+          <div class="summary-card-icon"><svg class="icon" width="20" height="20"><use href="#icon-relay"/></svg></div>
+          <div class="summary-card-body">
+            <span class="summary-card-label">Horas por pessoa</span>
+            <div class="hours-list" id="listaHoras"><span class="summary-card-sub">Sem plantões cadastrados</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="alerts" id="alertsBox" hidden></div>
+    </section>
+
+    <!-- ===================== AGENDA ===================== -->
+    <section class="panel agenda-panel" aria-label="Agenda semanal">
+      <div class="agenda-toolbar">
+        <div class="week-nav">
+          <button class="icon-btn" id="btnSemanaAnterior" aria-label="Semana anterior"><svg class="icon" width="18" height="18"><use href="#icon-chevron-left"/></svg></button>
+          <div class="week-label">
+            <svg class="icon" width="16" height="16"><use href="#icon-calendar"/></svg>
+            <span id="weekLabel">—</span>
+          </div>
+          <button class="icon-btn" id="btnSemanaProxima" aria-label="Próxima semana"><svg class="icon" width="18" height="18"><use href="#icon-chevron-right"/></svg></button>
+          <button class="btn btn-text" id="btnHoje">Hoje</button>
+        </div>
+        <div class="agenda-filters">
+          <label class="search-field">
+            <svg class="icon" width="16" height="16"><use href="#icon-search"/></svg>
+            <input type="search" id="inputBusca" placeholder="Buscar acompanhante…" aria-label="Buscar por nome">
+          </label>
+          <select id="selectDia" aria-label="Filtrar por dia">
+            <option value="">Todos os dias</option>
+            <option value="1">Segunda</option>
+            <option value="2">Terça</option>
+            <option value="3">Quarta</option>
+            <option value="4">Quinta</option>
+            <option value="5">Sexta</option>
+            <option value="6">Sábado</option>
+            <option value="0">Domingo</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="legend" id="legendaPessoas"></div>
+
+      <div class="calendar-scroll">
+        <div class="calendar-grid" id="calendarGrid">
+          <!-- Gerado via JavaScript -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== DISPONIBILIDADE ===================== -->
+    <section class="panel avail-panel" aria-label="Disponibilidade da família">
+      <div class="panel-header">
+        <div>
+          <h2>Minha Disponibilidade</h2>
+          <p class="panel-sub">Avise a família quando você pode cobrir um novo horário.</p>
+        </div>
+        <button class="btn btn-secondary" id="btnNovaDisponibilidade">
+          <svg class="icon" width="18" height="18"><use href="#icon-plus"/></svg><span>Informar disponibilidade</span>
+        </button>
+      </div>
+      <div class="avail-list" id="availList">
+        <p class="empty-state">Ninguém informou disponibilidade ainda.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="app-footer">
+    <p>Feito para a família se organizar com carinho · os dados ficam salvos apenas neste navegador (LocalStorage)</p>
+  </footer>
+</div>
+
+<!-- ===================== MODAL: PLANTÃO ===================== -->
+<div class="modal-overlay" id="modalPlantao" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalPlantaoTitulo">
+    <div class="modal-header">
+      <h2 id="modalPlantaoTitulo">Novo plantão</h2>
+      <button class="icon-btn" id="fecharModalPlantao" aria-label="Fechar">✕</button>
+    </div>
+    <form id="formPlantao" class="modal-form">
+      <input type="hidden" id="plantaoId">
+      <div class="form-row">
+        <label for="plantaoNome">Nome do acompanhante</label>
+        <input type="text" id="plantaoNome" list="listaNomes" required placeholder="Ex: João">
+        <datalist id="listaNomes"></datalist>
+      </div>
+      <div class="form-grid">
+        <div class="form-row">
+          <label for="plantaoData">Data</label>
+          <input type="date" id="plantaoData" required>
+        </div>
+        <div class="form-row">
+          <label for="plantaoInicio">Início</label>
+          <input type="time" id="plantaoInicio" required>
+        </div>
+        <div class="form-row">
+          <label for="plantaoFim">Término</label>
+          <input type="time" id="plantaoFim" required>
+        </div>
+      </div>
+      <p class="form-hint" id="dicaDuracao"></p>
+      <div class="form-row">
+        <label for="plantaoObs">Observações (opcional)</label>
+        <textarea id="plantaoObs" rows="2" placeholder="Ex: posso dormir no hospital"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-danger-ghost" id="btnExcluirPlantao" hidden>
+          <svg class="icon" width="16" height="16"><use href="#icon-trash"/></svg> Excluir
+        </button>
+        <div class="modal-actions-right">
+          <button type="button" class="btn btn-ghost" id="cancelarPlantao">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar plantão</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== MODAL: DISPONIBILIDADE ===================== -->
+<div class="modal-overlay" id="modalDisponibilidade" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalDispTitulo">
+    <div class="modal-header">
+      <h2 id="modalDispTitulo">Informar disponibilidade</h2>
+      <button class="icon-btn" id="fecharModalDisp" aria-label="Fechar">✕</button>
+    </div>
+    <form id="formDisponibilidade" class="modal-form">
+      <div class="form-row">
+        <label for="dispNome">Nome</label>
+        <input type="text" id="dispNome" list="listaNomes" required placeholder="Ex: Maria">
+      </div>
+      <div class="form-row">
+        <label>Dias disponíveis</label>
+        <div class="days-picker" id="dispDias">
+          <label><input type="checkbox" value="1"><span>Seg</span></label>
+          <label><input type="checkbox" value="2"><span>Ter</span></label>
+          <label><input type="checkbox" value="3"><span>Qua</span></label>
+          <label><input type="checkbox" value="4"><span>Qui</span></label>
+          <label><input type="checkbox" value="5"><span>Sex</span></label>
+          <label><input type="checkbox" value="6"><span>Sáb</span></label>
+          <label><input type="checkbox" value="0"><span>Dom</span></label>
+        </div>
+      </div>
+      <div class="form-grid form-grid-2">
+        <div class="form-row">
+          <label for="dispInicio">Horário inicial</label>
+          <input type="time" id="dispInicio" required>
+        </div>
+        <div class="form-row">
+          <label for="dispFim">Horário final</label>
+          <input type="time" id="dispFim" required>
+        </div>
+      </div>
+      <div class="form-row">
+        <label for="dispObs">Observações</label>
+        <textarea id="dispObs" rows="2" placeholder="Ex: posso dormir no hospital"></textarea>
+      </div>
+      <div class="modal-actions">
+        <div class="modal-actions-right">
+          <button type="button" class="btn btn-ghost" id="cancelarDisp">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar disponibilidade</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== MODAL: CONFIRMAÇÃO ===================== -->
+<div class="modal-overlay" id="modalConfirm" hidden>
+  <div class="modal modal-small" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitulo">
+    <div class="modal-header">
+      <h2 id="confirmTitulo">Confirmar exclusão</h2>
+    </div>
+    <p class="confirm-text" id="confirmTexto">Tem certeza que deseja excluir este item? Essa ação não pode ser desfeita.</p>
+    <div class="modal-actions">
+      <div class="modal-actions-right">
+        <button type="button" class="btn btn-ghost" id="confirmCancelar">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="confirmOk">Excluir</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== TOAST ===================== -->
+<div class="toast" id="toast" hidden></div>
+
+<script src="script.js"></script>
+</body>
+</html>
