@@ -114,8 +114,23 @@ input,select,textarea{ font-family: inherit; font-size: 0.95rem; }
 }
 .icon-btn:hover{ background: var(--surface-sunken); color: var(--ink); }
 
+/* ============================== ABAS ============================== */
+.tabs{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px; }
+.tab-btn{
+  display:inline-flex; align-items:center; gap:8px;
+  border:1px solid var(--border); border-radius:999px;
+  background: var(--surface); color: var(--ink-soft);
+  padding:10px 18px; font-size:0.86rem; font-weight:700;
+  cursor:pointer; box-shadow: var(--shadow-sm); transition: all .15s ease;
+}
+.tab-btn:hover{ background: var(--surface-sunken); color: var(--ink); }
+.tab-btn.is-active{ background: var(--primary); border-color: var(--primary); color:#fff; }
+.tab-btn.is-active svg{ opacity:1; }
+
 /* ============================== LAYOUT ============================== */
 .layout{ display:flex; flex-direction:column; gap:20px; }
+.tab-panel{ display:flex; flex-direction:column; gap:20px; }
+.tab-panel[hidden]{ display:none; }
 .panel{
   background: var(--surface);
   border-radius: var(--radius-lg);
@@ -248,6 +263,7 @@ input,select,textarea{ font-family: inherit; font-size: 0.95rem; }
 }
 .cal-shift:hover{ transform: translateY(-1px) scale(1.01); box-shadow: var(--shadow); z-index:6; }
 .cal-shift.is-overlap{ outline:2px solid var(--warning); outline-offset:-2px; }
+.cal-shift.is-avail-overlap{ outline:2px solid var(--primary); outline-offset:-2px; }
 .cal-shift-top{ display:flex; align-items:center; gap:5px; }
 .cal-avatar{
   width:17px; height:17px; border-radius:50%; color:#fff; font-size:0.6rem; font-weight:700;
@@ -366,7 +382,8 @@ input,select,textarea{ font-family: inherit; font-size: 0.95rem; }
 @media print{
   body{ background:#fff; }
   .topbar-actions, .agenda-filters, .btn-primary, #btnNovaDisponibilidade,
-  .modal-overlay, .toast, .app-footer, .week-nav .btn-text, .icon-btn{ display:none !important; }
+  .modal-overlay, .toast, .app-footer, .week-nav .btn-text, .icon-btn, .tabs{ display:none !important; }
+  .tab-panel[hidden]{ display:flex !important; }
   .panel{ box-shadow:none; border:1px solid #ccc; break-inside:avoid; }
   .calendar-scroll{ overflow:visible; }
   .calendar-grid{ min-width:0; }

@@ -65,7 +65,21 @@
     </div>
   </header>
 
+  <!-- ===================== ABAS ===================== -->
+  <nav class="tabs" role="tablist" aria-label="Seções da escala">
+    <button class="tab-btn is-active" id="tabBtnPlantoes" data-tab="plantoes" role="tab" aria-selected="true" aria-controls="tabPlantoes">
+      <svg class="icon" width="16" height="16"><use href="#icon-calendar"/></svg>
+      <span>Agenda de Plantões</span>
+    </button>
+    <button class="tab-btn" id="tabBtnDisponibilidade" data-tab="disponibilidade" role="tab" aria-selected="false" aria-controls="tabDisponibilidade">
+      <svg class="icon" width="16" height="16"><use href="#icon-clock"/></svg>
+      <span>Disponibilidade da Família</span>
+    </button>
+  </nav>
+
   <main class="layout">
+
+   <div class="tab-panel" id="tabPlantoes" data-tabpanel="plantoes" role="tabpanel" aria-labelledby="tabBtnPlantoes">
 
     <!-- ===================== RESUMO ===================== -->
     <section class="panel summary-panel" aria-label="Resumo da escala">
@@ -145,8 +159,28 @@
       </div>
     </section>
 
-    <!-- ===================== DISPONIBILIDADE ===================== -->
-    <section class="panel avail-panel" aria-label="Disponibilidade da família">
+   </div><!-- /tabPlantoes -->
+
+   <div class="tab-panel" id="tabDisponibilidade" data-tabpanel="disponibilidade" role="tabpanel" aria-labelledby="tabBtnDisponibilidade" hidden>
+
+    <!-- ===================== CALENDÁRIO DE DISPONIBILIDADE (TODOS JUNTOS) ===================== -->
+    <section class="panel avail-calendar-panel" aria-label="Calendário de disponibilidade da família">
+      <div class="panel-header">
+        <div>
+          <h2>Calendário de disponibilidade</h2>
+          <p class="panel-sub">Uma semana típica, com os horários que cada pessoa da família já avisou que pode cobrir.</p>
+        </div>
+      </div>
+      <div class="legend" id="legendaDisponibilidade"></div>
+      <div class="calendar-scroll">
+        <div class="calendar-grid calendar-grid--recurring" id="availCalendarGrid">
+          <!-- Gerado via JavaScript -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== LISTA / CADASTRO DE DISPONIBILIDADE ===================== -->
+    <section class="panel avail-panel" aria-label="Minha disponibilidade">
       <div class="panel-header">
         <div>
           <h2>Minha Disponibilidade</h2>
@@ -160,6 +194,8 @@
         <p class="empty-state">Ninguém informou disponibilidade ainda.</p>
       </div>
     </section>
+
+   </div><!-- /tabDisponibilidade -->
 
   </main>
 

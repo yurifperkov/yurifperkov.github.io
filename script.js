@@ -264,22 +264,36 @@
     const weekDays = getWeekDays(state.weekStart);
     const weekData = computeWeekData(weekDays);
     el('weekLabel').textContent = formatWeekLabel(state.weekStart);
-    renderLegend();
+    renderLegend('legendaPessoas', state.shifts.map(s => s.name));
     renderCalendar(weekDays, weekData);
     renderSummary(weekDays, weekData);
     renderAlerts(weekDays, weekData);
     renderAvailability();
+    renderAvailabilityCalendar();
     renderNamesDatalist();
   }
 
-  function renderLegend(){
-    const box = el('legendaPessoas');
-    const names = Array.from(new Set(state.shifts.map(s => s.name))).sort((a,b)=>a.localeCompare(b,'pt-BR'));
-    if (!names.length){ box.innerHTML = ''; return; }
-    box.innerHTML = names.map(name => `
+  function renderLegend(elementId, names){
+    const box = el(elementId);
+    const unique = Array.from(new Set(names)).sort((a,b)=>a.localeCompare(b,'pt-BR'));
+    if (!unique.length){ box.innerHTML = ''; return; }
+    box.innerHTML = unique.map(name => `
       <span class="legend-item">
         <span class="legend-dot" style="background:${getPersonColor(name)}"></span>${escapeHtml(name)}
       </span>`).join('');
+  }
+
+  function buildHoursColumn(){
+    const hoursCol = makeDiv('cal-hours');
+    hoursCol.style.gridRow = '2';
+    hoursCol.style.gridColumn = '1';
+    for (let h=0; h<24; h++){
+      const lbl = makeDiv('cal-hour-label');
+      lbl.textContent = `${pad2(h)}:00`;
+      hoursCol.appendChild(lbl);
+    }
+    hoursCol.style.height = `${24*ROW_H}px`;
+    return hoursCol;
   }
 
   function renderCalendar(weekDays, weekData){
@@ -302,17 +316,7 @@
     });
 
     // coluna de horas
-    const hoursCol = makeDiv('cal-hours');
-    hoursCol.style.gridRow = '2';
-    hoursCol.style.gridColumn = '1';
-    hoursCol.style.display = 'block';
-    for (let h=0; h<24; h++){
-      const lbl = makeDiv('cal-hour-label');
-      lbl.textContent = `${pad2(h)}:00`;
-      hoursCol.appendChild(lbl);
-    }
-    hoursCol.style.height = `${24*ROW_H}px`;
-    grid.appendChild(hoursCol);
+    grid.appendChild(buildHoursColumn());
 
     // colunas dos dias
     weekDays.forEach((date, i) => {
@@ -518,6 +522,93 @@
         </div>
       </div>`;
     }).join('');
+  }
+
+  // Ordem de exibição das colunas (Segunda -> Domingo), usando o índice de getDay() (0=Domingo)
+  const DOW_ORDER = [1,2,3,4,5,6,0];
+
+  // Converte cada disponibilidade em segmentos por dia da semana (mesma lógica de "vira a noite" dos plantões)
+  function availabilitySegments(){
+    const segs = [];
+    state.availability.forEach(a => {
+      const startMin = timeToMinutes(a.start);
+      let endMin = timeToMinutes(a.end);
+      if (endMin <= startMin) endMin += 1440;
+      (a.days||[]).forEach(day => {
+        const fakeShift = { id: `${a.id}-${day}`, name: a.name, notes: a.notes };
+        if (endMin <= 1440){
+          segs.push({ day, startMin, endMin, shift: fakeShift });
+        } else {
+          segs.push({ day, startMin, endMin: 1440, shift: { ...fakeShift, id: fakeShift.id+'a' } });
+          segs.push({ day: (day+1)%7, startMin: 0, endMin: endMin-1440, shift: { ...fakeShift, id: fakeShift.id+'b' } });
+        }
+      });
+    });
+    return segs;
+  }
+
+  function renderAvailabilityCalendar(){
+    const grid = el('availCalendarGrid');
+    if (!grid) return;
+    const allSegs = availabilitySegments();
+    renderLegend('legendaDisponibilidade', state.availability.map(a => a.name));
+    grid.innerHTML = '';
+
+    grid.appendChild(makeDiv('cal-corner'));
+    DOW_ORDER.forEach(dow => {
+      const header = makeDiv('cal-daycol-header');
+      header.innerHTML = `<div class="dow">${DOW_LONG[dow]}</div>`;
+      grid.appendChild(header);
+    });
+
+    grid.appendChild(buildHoursColumn());
+
+    DOW_ORDER.forEach((dow, i) => {
+      const segsForDay = allSegs.filter(s => s.day === dow);
+      const day = computeDayData(String(dow), segsForDay);
+      const col = makeDiv('cal-daycol');
+      col.style.height = `${24*ROW_H}px`;
+      col.style.gridColumn = String(i+2);
+      col.style.gridRow = '2';
+
+      // lacunas: ninguém disponível nesse horário
+      day.gaps.forEach(g => {
+        const gapEl = makeDiv('cal-gap');
+        gapEl.style.top = `${g.start/60*ROW_H}px`;
+        gapEl.style.height = `${Math.max(2,(g.end-g.start)/60*ROW_H)}px`;
+        if ((g.end-g.start) >= 40){
+          gapEl.innerHTML = `<div class="cal-gap-label">Ninguém disponível</div>`;
+        }
+        col.appendChild(gapEl);
+      });
+
+      day.segments.forEach(seg => {
+        const width = 100/seg.totalCols;
+        const left = seg.col*width;
+        const block = document.createElement('div');
+        block.className = `cal-shift${seg.isOverlap?' is-avail-overlap':''}`;
+        block.style.top = `${seg.startMin/60*ROW_H}px`;
+        block.style.height = `${Math.max(20,(seg.endMin-seg.startMin)/60*ROW_H - 2)}px`;
+        block.style.left = `calc(${left}% + 2px)`;
+        block.style.width = `calc(${width}% - 4px)`;
+        const color = getPersonColor(seg.shift.name);
+        block.style.background = hexToRgba(color, 0.16);
+        block.style.borderLeftColor = color;
+        const initials = seg.shift.name.trim().slice(0,1).toUpperCase();
+        block.innerHTML = `
+          <div class="cal-shift-top">
+            <span class="cal-avatar" style="background:${color}">${initials}</span>
+            <span class="cal-shift-name" style="color:${color}">${escapeHtml(seg.shift.name)}</span>
+          </div>
+          <div class="cal-shift-time">${minutesToTime(seg.startMin)}–${minutesToTime(seg.endMin)}</div>
+          ${seg.shift.notes ? `<div class="cal-shift-note">${escapeHtml(seg.shift.notes)}</div>` : ''}
+        `;
+        block.title = `${seg.shift.name} · disponível ${minutesToTime(seg.startMin)}–${minutesToTime(seg.endMin)}${seg.shift.notes?' · '+seg.shift.notes:''}`;
+        col.appendChild(block);
+      });
+
+      grid.appendChild(col);
+    });
   }
 
   function renderNamesDatalist(){
@@ -755,6 +846,18 @@
    * 12. EVENTOS
    * ------------------------------------------------------------------- */
   function bindEvents(){
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+        document.querySelectorAll('.tab-btn').forEach(b => {
+          const active = b === btn;
+          b.classList.toggle('is-active', active);
+          b.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+        document.querySelectorAll('.tab-panel').forEach(p => { p.hidden = p.dataset.tabpanel !== tab; });
+      });
+    });
+
     el('btnSemanaAnterior').addEventListener('click', () => { state.weekStart = addDays(state.weekStart, -7); render(); });
     el('btnSemanaProxima').addEventListener('click', () => { state.weekStart = addDays(state.weekStart, 7); render(); });
     el('btnHoje').addEventListener('click', () => { state.weekStart = getMonday(new Date()); render(); });
